@@ -1,5 +1,5 @@
 const express = require('express');
-const { oauth2Client, SCOPES } = require('../config/google');
+const { oauth2Client, SCOPES } = require('../config/googleAuth');
 const { db } = require('../config/firebase');
 const authenticateUser = require('../middleware/auth');
 

@@ -1,6 +1,6 @@
 const googleFormsService = require('../services/googleFormsService');
 const { db, admin } = require('../config/firebase');
-const { oauth2Client } = require('../config/google');
+const { oauth2Client } = require('../config/googleAuth');
 
 /**
  * Save draft form (before creating Google Form)
