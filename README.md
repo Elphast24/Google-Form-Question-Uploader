@@ -1,9 +1,9 @@
 # Google Form Question Uploader
 
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/Google-Form-Question-Uploader?style=social)](https://github.com/yourusername/Google-Form-Question-Uploader/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/yourusername/Google-Form-Question-Uploader?style=social)](https://github.com/yourusername/Google-Form-Question-Uploader/network)
-[![GitHub issues](https://img.shields.io/github/issues/yourusername/Google-Form-Question-Uploader)](https://github.com/yourusername/Google-Form-Question-Uploader/issues)
-[![GitHub license](https://img.shields.io/github/license/yourusername/Google-Form-Question-Uploader)](https://github.com/yourusername/Google-Form-Question-Uploader/blob/main/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/Elphast24/Google-Form-Question-Uploader?style=social)](https://github.com/Elphast24/Google-Form-Question-Uploader/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/Elphast24/Google-Form-Question-Uploader?style=social)](https://github.com/Elphast24/Google-Form-Question-Uploader/network)
+[![GitHub issues](https://img.shields.io/github/issues/Elphast24/Google-Form-Question-Uploader)](https://github.com/Elphast24/Google-Form-Question-Uploader/issues)
+[![GitHub license](https://img.shields.io/github/license/Elphast24/Google-Form-Question-Uploader)](https://github.com/Elphast24/Google-Form-Question-Uploader/blob/main/LICENSE)
 [![Node.js Version](https://img.shields.io/node-version/16+/node)](https://nodejs.org)
 [![React Version](https://img.shields.io/badge/React-19-blue)](https://react.dev)
 
