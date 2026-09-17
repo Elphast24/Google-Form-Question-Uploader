@@ -6,11 +6,12 @@ import { useGSAPAnimation } from '@/hooks/useGSAPAnimation';
 export interface WorkspaceHeaderProps {
   title: ReactNode;
   subtitle?: ReactNode;
+  children?: ReactNode;
   className?: string;
 }
 
 export const WorkspaceHeader = forwardRef<HTMLElement, WorkspaceHeaderProps>(
-  function WorkspaceHeader({ title, subtitle, className = '' }, ref) {
+  function WorkspaceHeader({ title, subtitle, children, className = '' }, ref) {
     const titleRef = useRef<HTMLHeadingElement>(null);
     const subtitleRef = useRef<HTMLParagraphElement>(null);
     const { reduceMotion, effective } = useGSAPAnimation();
@@ -52,6 +53,11 @@ export const WorkspaceHeader = forwardRef<HTMLElement, WorkspaceHeaderProps>(
           <p ref={subtitleRef} className="workspace-header__subtitle">
             {subtitle}
           </p>
+        )}
+        {children && (
+          <div className="workspace-header__actions">
+            {children}
+          </div>
         )}
       </header>
     );

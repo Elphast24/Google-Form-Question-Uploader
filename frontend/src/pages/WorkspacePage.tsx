@@ -5,7 +5,7 @@ import {
 } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
-import { Sparkles, FileText } from 'lucide-react';
+import { Sparkles, FileText, Layers, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useGSAPAnimation } from '@/hooks/useGSAPAnimation';
@@ -31,6 +31,7 @@ import { DocViewer } from '@/components/document/DocViewer';
 import { FormPreview } from '@/components/form/FormPreview';
 import { ParsingProgress } from '@/components/progress/ParsingProgress';
 import { PARSING_MILESTONES } from '@/lib/constants';
+import '@/styles/workspace.css';
 
 const validateFile = (file: File): string | null => {
   if (!VALID_FILE_TYPES.has(file.type)) {
@@ -68,13 +69,14 @@ export const WorkspacePage = () => {
   const navigate = useNavigate();
   const [formState, formActions] = useFormState();
   const { status: parseStatus, activeIndex, start: startParsing, cancel: cancelParsing } = useParsingProgress(PARSING_MILESTONES);
-  const { reduceMotion } = useGSAPAnimation();
+  const { reduceMotion, effective } = useGSAPAnimation();
   const { user, signIn } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
   const [docContent, setDocContent] = useState('');
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [activeTool, setActiveTool] = useState<'questions' | 'preview'>('questions');
 
   const file = formState.file;
   const questions = formState.questions;
@@ -86,18 +88,20 @@ export const WorkspacePage = () => {
   const isReady = parsingStage === 'ready';
   const isIdle = parsingStage === 'idle' && !file;
 
+  /* GSAP entrance animation — retained from original */
   useGSAP(() => {
     if (!containerRef.current || reduceMotion) return;
     const ctx = gsap.context(() => {}, containerRef);
     gsap.from(containerRef.current, {
       opacity: 0,
       y: 24,
-      duration: 0.5,
+      duration: effective(0.5),
       ease: 'power2.out',
     });
     return () => ctx.revert();
-  }, [reduceMotion]);
+  }, [reduceMotion, effective]);
 
+  /* Retained: file validation and upload logic */
   const handleFileSelect = useCallback(
     async (selectedFile: File) => {
       const validationError = validateFile(selectedFile);
@@ -126,7 +130,7 @@ export const WorkspacePage = () => {
           const text = await readTextFile(selectedFile);
           setDocContent(text);
         } else {
-          setDocContent('[DOCX document — text extracted by Gemini AI backend]');
+          setDocContent('[DOCX document — text extracted by backend]');
         }
 
         const response: UploadResponse = await uploadFile(selectedFile);
@@ -150,6 +154,7 @@ export const WorkspacePage = () => {
     [formActions, startParsing, cancelParsing, user, signIn]
   );
 
+  /* Retained: file cleanup logic */
   const handleRemoveFile = useCallback(() => {
     formActions.setFile(null);
     formActions.setQuestions([]);
@@ -160,6 +165,7 @@ export const WorkspacePage = () => {
     cancelParsing();
   }, [formActions, cancelParsing]);
 
+  /* Retained: question management logic */
   const handleTitleChange = useCallback(
     (newTitle: string) => {
       formActions.setTitle(newTitle);
@@ -185,6 +191,7 @@ export const WorkspacePage = () => {
     formActions.addQuestion();
   }, [formActions]);
 
+  /* Retained: form generation logic */
   const handleGenerateForm = useCallback(async () => {
     if (!title.trim() || questions.length === 0) return;
 
@@ -227,81 +234,6 @@ export const WorkspacePage = () => {
     }
   }, [title, questions, formActions, navigate]);
 
-  const leftPaneContent = (
-    <>
-      {isIdle && (
-        <DropZone
-          file={null}
-          parsingStage={parsingStage}
-          disabled={uploading}
-          dragActive={dragActive}
-          setDragActive={setDragActive}
-          onDropFile={handleFileSelect}
-          onRemoveFile={handleRemoveFile}
-        />
-      )}
-
-      {(isParsing || uploading) && file && (
-        <>
-          <DropZone
-            file={file}
-            parsingStage={parsingStage}
-            disabled={uploading}
-            dragActive={dragActive}
-            setDragActive={setDragActive}
-            onDropFile={handleFileSelect}
-            onRemoveFile={handleRemoveFile}
-          />
-          <ParsingProgress
-            milestones={PARSING_MILESTONES}
-            activeIndex={activeIndex}
-            status={parseStatus === 'idle' ? 'in-progress' : parseStatus}
-          />
-        </>
-      )}
-
-      {isReady && file && (
-        <DocViewer
-          fileName={file.name}
-          content={docContent || sanitizeParsedText(file.name)}
-          isLoading={false}
-        />
-      )}
-    </>
-  );
-
-  const rightPaneContent = (
-    <>
-      {(isParsing || uploading) && (
-        <ParsingProgress
-          milestones={PARSING_MILESTONES}
-          activeIndex={activeIndex}
-          status={parseStatus === 'idle' ? 'in-progress' : parseStatus}
-        />
-      )}
-
-      {isReady && (
-        <FormPreview
-          title={title}
-          questions={questions}
-          onTitleChange={handleTitleChange}
-          onUpdateQuestion={handleUpdateQuestion}
-          onDeleteQuestion={handleDeleteQuestion}
-          onAddQuestion={handleAddQuestion}
-        />
-      )}
-
-      {isIdle && (
-        <div className="form-preview-placeholder" aria-live="polite">
-          <FileText size={48} className="form-preview-placeholder__icon" />
-          <p className="form-preview-placeholder__text">
-            Upload a document to see the form preview here.
-          </p>
-        </div>
-      )}
-    </>
-  );
-
   const canGenerate = title.trim().length > 0 && questions.length > 0;
 
   return (
@@ -309,12 +241,43 @@ export const WorkspacePage = () => {
       ref={containerRef}
       className="workspace-page"
       role="main"
-      aria-label="Form generator workspace"
+      aria-label="SVG layout editor workspace"
     >
+      <div className="workspace-lowpoly" aria-hidden="true" />
+
       <WorkspaceHeader
-        title="Transform Documents into Google Forms"
-        subtitle="Upload your DOCX or TXT file and let AI extract questions automatically."
-      />
+        title="LocalSVG — Visual Layout Editor"
+        subtitle="Upload a DOCX or TXT file and let AI extract questions automatically into structured form layouts."
+      >
+        <div className="workspace-toolbar">
+          <button
+            type="button"
+            className={`workspace-toolbar__btn ${activeTool === 'questions' ? 'active' : ''}`}
+            onClick={() => setActiveTool('questions')}
+            aria-label="Questions panel"
+          >
+            <FileText size={18} />
+            Questions
+          </button>
+          <button
+            type="button"
+            className={`workspace-toolbar__btn ${activeTool === 'preview' ? 'active' : ''}`}
+            onClick={() => setActiveTool('preview')}
+            aria-label="Preview panel"
+          >
+            <Layers size={18} />
+            Preview
+          </button>
+          <button
+            type="button"
+            className="workspace-toolbar__btn"
+            aria-label="Open settings"
+          >
+            <Settings size={18} />
+            Settings
+          </button>
+        </div>
+      </WorkspaceHeader>
 
       {formError && (
         <ErrorBanner
@@ -323,22 +286,88 @@ export const WorkspacePage = () => {
         />
       )}
 
-      <SplitPane
-        leftPane={
-          <LeftPane
-            file={file}
-            parsingStage={parsingStage}
-            aria-label="Document workspace"
-          >
-            {leftPaneContent}
-          </LeftPane>
-        }
-        rightPane={
-          <RightPane parsingStage={parsingStage} aria-label="Form preview workspace">
-            {rightPaneContent}
-          </RightPane>
-        }
-      />
+      <div className="workspace-split-wrapper">
+        <SplitPane
+          leftPane={
+            <LeftPane
+              file={file}
+              parsingStage={parsingStage}
+              aria-label="Document workspace"
+              className="workspace-pane workspace-pane--left"
+            >
+              {isIdle && (
+                <DropZone
+                  file={null}
+                  parsingStage={parsingStage}
+                  disabled={uploading}
+                  dragActive={dragActive}
+                  setDragActive={setDragActive}
+                  onDropFile={handleFileSelect}
+                  onRemoveFile={handleRemoveFile}
+                />
+              )}
+
+              {(isParsing || uploading) && file && (
+                <>
+                  <DropZone
+                    file={file}
+                    parsingStage={parsingStage}
+                    disabled={uploading}
+                    dragActive={dragActive}
+                    setDragActive={setDragActive}
+                    onDropFile={handleFileSelect}
+                    onRemoveFile={handleRemoveFile}
+                  />
+                  <ParsingProgress
+                    milestones={PARSING_MILESTONES}
+                    activeIndex={activeIndex}
+                    status={parseStatus === 'idle' ? 'in-progress' : parseStatus}
+                  />
+                </>
+              )}
+
+              {isReady && file && (
+                <DocViewer
+                  fileName={file.name}
+                  content={docContent || sanitizeParsedText(file.name)}
+                  isLoading={false}
+                />
+              )}
+            </LeftPane>
+          }
+          rightPane={
+            <RightPane parsingStage={parsingStage} aria-label="Form preview workspace" className="workspace-pane workspace-pane--right">
+              {(isParsing || uploading) && (
+                <ParsingProgress
+                  milestones={PARSING_MILESTONES}
+                  activeIndex={activeIndex}
+                  status={parseStatus === 'idle' ? 'in-progress' : parseStatus}
+                />
+              )}
+
+              {isReady && (
+                <FormPreview
+                  title={title}
+                  questions={questions}
+                  onTitleChange={handleTitleChange}
+                  onUpdateQuestion={handleUpdateQuestion}
+                  onDeleteQuestion={handleDeleteQuestion}
+                  onAddQuestion={handleAddQuestion}
+                />
+              )}
+
+              {isIdle && (
+                <div className="form-preview-placeholder" aria-live="polite">
+                  <FileText size={48} className="form-preview-placeholder__icon" />
+                  <p className="form-preview-placeholder__text">
+                    Upload a document to see the form preview here.
+                  </p>
+                </div>
+              )}
+            </RightPane>
+          }
+        />
+      </div>
 
       <WorkspaceFooter
         actions={

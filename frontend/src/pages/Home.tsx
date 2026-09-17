@@ -1,20 +1,111 @@
-import { useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import UploadBox from '../components/UploadBox';
-import Footer from '../components/Footer';
-import Loader from '../components/Loader';
-import { uploadFile } from '../services/api';
+import { useAuth } from '@/context/AuthContext';
+import UploadBox from '@/components/UploadBox';
+import Loader from '@/components/Loader';
+import { uploadFile } from '@/services/api';
 import type { UploadResponse } from '@/types/api';
 import { FileText, Sparkles, Zap } from 'lucide-react';
-import '../styles/global.css';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { animate } from 'animejs';
+import { useGSAPAnimation } from '@/hooks/useGSAPAnimation';
+import '@/styles/global.css';
 
-const Home = () => {
-  const { user, signIn } = useAuth();
+gsap.registerPlugin(ScrollTrigger);
+
+interface User {
+  uid: string;
+  name: string | null;
+  email: string | null;
+  picture: string | null;
+}
+
+const Home: React.FC = () => {
+  const { user, signIn } = useAuth() as {
+    user: User | null;
+    signIn: () => Promise<void>;
+  };
   const navigate = useNavigate();
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [file, setFile] = React.useState<File | null>(null);
+  const [uploading, setUploading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const { reduceMotion } = useGSAPAnimation();
+
+  const heroRef = useRef<HTMLElement>(null);
+  const featuresRef = useRef<HTMLDivElement>(null);
+  const uploadSectionRef = useRef<HTMLElement>(null);
+
+  /* GSAP ScrollTrigger animations on each section */
+  useEffect(() => {
+    if (reduceMotion) return;
+
+    const ctx = gsap.context(() => {
+      if (heroRef.current) {
+        gsap.from(heroRef.current.querySelectorAll('.home-hero-content > *'), {
+          opacity: 0,
+          y: 30,
+          stagger: 0.15,
+          duration: 0.6,
+          ease: 'power2.out',
+        });
+      }
+
+      if (featuresRef.current) {
+        const cards = featuresRef.current.querySelectorAll('.feature-card');
+        cards.forEach((card) => {
+          gsap.from(card, {
+            scrollTrigger: {
+              trigger: card,
+              start: 'top 80%',
+              toggleActions: 'play none none reverse',
+            },
+            opacity: 0,
+            y: 30,
+            duration: 0.5,
+            ease: 'power2.out',
+          });
+        });
+      }
+
+      if (uploadSectionRef.current) {
+        const el = uploadSectionRef.current;
+        gsap.from(
+          el.querySelectorAll('.upload-box, .button-primary, .button-secondary'),
+          {
+            scrollTrigger: {
+              trigger: el,
+              start: 'top 80%',
+              toggleActions: 'play none none reverse',
+            },
+            opacity: 0,
+            y: 20,
+            stagger: 0.1,
+            duration: 0.5,
+            ease: 'power2.out',
+          }
+        );
+      }
+    });
+
+    return () => ctx.revert();
+  }, [reduceMotion]);
+
+  /* Anime.js subtle pulse on hero title */
+  useEffect(() => {
+    if (reduceMotion) return;
+
+    const titleEl = document.querySelector('.home-title');
+    if (!titleEl) return;
+
+    animate(titleEl, {
+      scale: [1, 1.02, 1],
+      duration: 6000,
+      easing: 'easeInOutSine',
+      direction: 'alternate',
+      loop: true,
+    });
+  }, [reduceMotion]);
 
   const handleFileSelect = (selectedFile: File | null) => {
     setFile(selectedFile);
@@ -41,16 +132,15 @@ const Home = () => {
 
     try {
       const response: UploadResponse = await uploadFile(file);
-      
-      navigate('/preview', { 
-        state: { 
+
+      navigate('/preview', {
+        state: {
           questions: response.questions,
-          fileName: file.name 
-        } 
+          fileName: file.name,
+        },
       });
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to process file. Please try again.';
-      setError(errorMsg);
+      setError(err instanceof Error ? err.message : 'Failed to process file. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -59,7 +149,7 @@ const Home = () => {
   return (
     <div className="page-container">
       <main className="home-page">
-        <div className="home-hero">
+        <section className="home-hero" ref={heroRef}>
           <div className="home-hero-content">
             <h1 className="home-title">
               Transform Documents into
@@ -71,7 +161,7 @@ const Home = () => {
             </p>
           </div>
 
-          <div className="home-features">
+          <div className="home-features" ref={featuresRef}>
             <div className="feature-card">
               <div className="feature-icon" style={{ background: '#E8F0FE' }}>
                 <Sparkles size={24} color="#4285F4" />
@@ -94,9 +184,9 @@ const Home = () => {
               <p>Support for DOCX and TXT file formats</p>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="home-upload-section">
+        <section className="home-upload-section" ref={uploadSectionRef}>
           <UploadBox onFileSelect={handleFileSelect} disabled={uploading} />
 
           {error && (
@@ -122,18 +212,26 @@ const Home = () => {
               </>
             )}
           </button>
-
-          {user && (
-            <button
-              onClick={() => navigate('/my-forms')}
-              className="button-secondary"
-            >
-              View My Forms
-            </button>
-          )}
-        </div>
+        </section>
       </main>
-      <Footer />
+      <footer className="footer">
+        <div className="footer-container">
+          <div className="footer-content">
+            <p className="footer-text">
+              © {new Date().getFullYear()} AI Form Generator. Powered by Gemini AI &amp; Google Forms API.
+            </p>
+            <div className="footer-links">
+              <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="footer-link">
+                GitHub
+              </a>
+              <span className="footer-divider">•</span>
+              <a href="https://docs.google.com/forms" target="_blank" rel="noopener noreferrer" className="footer-link">
+                Google Forms
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

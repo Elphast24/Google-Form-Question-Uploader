@@ -1,13 +1,43 @@
-import { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { LogOut, User, Menu, X } from 'lucide-react';
 import '../styles/global.css';
+import { useGSAPAnimation } from '@/hooks/useGSAPAnimation';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 
-const Navbar = () => {
-  const { user, signIn, signOut } = useAuth();
+interface User {
+  uid: string;
+  name: string | null;
+  email: string | null;
+  picture: string | null;
+}
+
+interface AuthContext {
+  user: User | null;
+  loading: boolean;
+  signIn: () => Promise<void>;
+  signOut: () => Promise<void>;
+}
+
+const Navbar: React.FC = () => {
+  const { user, signIn, signOut } = useAuth() as AuthContext;
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { reduceMotion, effective } = useGSAPAnimation();
+  const navRef = useRef<HTMLElement>(null);
+
+  useGSAP(() => {
+    if (reduceMotion || !navRef.current) return;
+
+    gsap.from(navRef.current, {
+      y: -30,
+      opacity: 0,
+      duration: effective(0.5),
+      ease: 'power2.out',
+    });
+  }, [reduceMotion, effective]);
 
   const handleSignIn = async () => {
     try {
@@ -27,12 +57,12 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="navbar">
+    <nav className="navbar" ref={navRef}>
       <div className="navbar-container">
         <Link to="/" className="navbar-logo">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-            <rect x="3" y="3" width="18" height="18" rx="2" stroke="#4285F4" strokeWidth="2"/>
-            <path d="M3 9h18M9 3v18" stroke="#4285F4" strokeWidth="2"/>
+            <rect x="3" y="3" width="18" height="18" rx="2" stroke="#4285F4" strokeWidth="2" />
+            <path d="M3 9h18M9 3v18" stroke="#4285F4" strokeWidth="2" />
           </svg>
           <span>AI Form Generator</span>
         </Link>
@@ -44,10 +74,10 @@ const Navbar = () => {
               My Forms
             </Link>
           )}
-          
+
           {user ? (
             <div className="navbar-user">
-              <img src={user.picture ?? undefined} alt={user.name ?? 'User'} className="navbar-user-avatar" />
+              <img src={user.picture || ''} alt={user.name || ''} className="navbar-user-avatar" />
               <span className="navbar-user-name">{user.name}</span>
               <button onClick={handleSignOut} className="navbar-button-secondary">
                 <LogOut size={18} />
@@ -63,7 +93,7 @@ const Navbar = () => {
         </div>
 
         {/* Mobile Menu Button */}
-        <button 
+        <button
           className="navbar-mobile-toggle"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
@@ -75,26 +105,26 @@ const Navbar = () => {
       {mobileMenuOpen && (
         <div className="navbar-mobile-menu">
           {user && (
-            <Link 
-              to="/my-forms" 
+            <Link
+              to="/my-forms"
               className="navbar-mobile-link"
               onClick={() => setMobileMenuOpen(false)}
             >
               My Forms
             </Link>
           )}
-          
+
           {user ? (
             <>
               <div className="navbar-mobile-user">
-                <img src={user.picture ?? undefined} alt={user.name ?? 'User'} />
+                <img src={user.picture || ''} alt={user.name || ''} />
                 <span>{user.name}</span>
               </div>
-              <button 
+              <button
                 onClick={() => {
                   handleSignOut();
                   setMobileMenuOpen(false);
-                }} 
+                }}
                 className="navbar-button-secondary"
               >
                 <LogOut size={18} />
