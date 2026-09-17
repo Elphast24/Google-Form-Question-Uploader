@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "tsPlugin": true,
+    "name": "vite_frontend_typescript",
+    "jsx": "react-jsx"
+  },
+  "include": ["vite.config.js"]
+}
