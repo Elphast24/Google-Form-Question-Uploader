@@ -687,57 +687,38 @@ code {
   gap: 20px;
 }
 
-.workflow-card {
+/* ---- Reusable Workflow Card Component ---- */
+.wc-card {
   position: relative;
   background: var(--white);
   border: 1px solid var(--grey-200);
   border-radius: var(--radius-xl);
-  padding: 32px 24px;
+  padding: 36px 28px;
   text-align: left;
   cursor: pointer;
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
+  overflow: visible;
 }
 
-.workflow-card::before {
-  content: '';
+/* Watermark Numbering - top-right corner */
+.wc-watermark {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--coral);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.workflow-card:hover,
-.workflow-card--active {
-  transform: translateY(-8px);
-  border-color: var(--coral);
-  box-shadow: var(--shadow-hover);
-}
-
-.workflow-card:hover::before,
-.workflow-card--active::before {
-  transform: scaleX(1);
-}
-
-.workflow-step-num {
+  top: 16px;
+  right: 20px;
   font-family: var(--font-heading);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--grey-400);
-  letter-spacing: 0.15em;
-  margin-bottom: 20px;
-  transition: color 0.3s;
+  font-size: 48px;
+  font-weight: 800;
+  opacity: 0.06;
+  z-index: 0;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
 }
 
-.workflow-card:hover .workflow-step-num,
-.workflow-card--active .workflow-step-num { color: var(--coral); }
-
-.workflow-icon {
+/* Top Element: Icon Badge - top-left squircle */
+.wc-icon-badge {
+  position: relative;
+  z-index: 1;
   width: 52px;
   height: 52px;
   border-radius: 14px;
@@ -746,43 +727,53 @@ code {
   display: grid;
   place-items: center;
   margin-bottom: 20px;
-  transition: all 0.3s;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 12px rgba(11, 42, 74, 0.06);
 }
 
-.workflow-card:hover .workflow-icon,
-.workflow-card--active .workflow-icon {
-  background: var(--coral);
-  color: var(--white);
-  transform: rotate(-4deg) scale(1.05);
-}
-
-.workflow-card h4 {
+/* Content: Heading */
+.wc-title {
   font-family: var(--font-heading);
   font-size: 17px;
   font-weight: 700;
   color: var(--navy-900);
   margin: 0 0 8px;
   letter-spacing: -0.01em;
+  position: relative;
+  z-index: 1;
+  transition: color 0.35s ease;
 }
 
-.workflow-card p {
+/* Content: Description */
+.wc-desc {
   font-size: 13px;
   color: var(--grey-700);
   line-height: 1.55;
   margin: 0;
-}
-
-.workflow-connector {
-  position: absolute;
-  top: 60px;
-  right: -12px;
-  width: 24px;
-  height: 1px;
-  background: linear-gradient(to right, var(--grey-200), transparent);
+  position: relative;
   z-index: 1;
 }
 
-/* -------------------- WELCOME -------------------- */
+/* Hover / Active States */
+.wc-card:hover,
+.wc-card--active {
+  transform: translateY(-8px);
+  border-color: var(--coral);
+  box-shadow: var(--shadow-hover);
+}
+
+.wc-card:hover .wc-icon-badge,
+.wc-card--active .wc-icon-badge {
+  background: var(--coral);
+  color: var(--white);
+  box-shadow: 0 6px 20px rgba(241, 90, 41, 0.3);
+}
+
+.wc-card:hover .wc-title,
+.wc-card--active .wc-title {
+  color: var(--coral);
+}
+
 .welcome-section {
   padding: 120px 32px;
   background: var(--white);
@@ -1720,7 +1711,7 @@ code {
     grid-template-columns: repeat(3, 1fr);
   }
 
-  .workflow-connector { display: none; }
+  .wc-card { padding: 24px 20px; }
 
   .welcome-container,
   .navy-band-container,
@@ -1781,7 +1772,7 @@ code {
     gap: 16px;
   }
 
-  .workflow-card { padding: 24px 20px; }
+  .wc-card { padding: 24px 20px; }
 
   .section-head h2,
   .welcome-copy h2,

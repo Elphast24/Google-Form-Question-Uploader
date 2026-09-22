@@ -17,6 +17,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useGSAPAnimation } from '@/hooks/useGSAPAnimation';
 import UploadBox from '@/components/UploadBox';
+import WorkflowCard from '@/components/WorkflowCard';
 import PillButton from '@/components/maritime/PillButton';
 import Eyebrow from '@/components/maritime/Eyebrow';
 import AssetShowcase from '@/components/maritime/AssetShowcase';
@@ -363,28 +364,17 @@ return () => ctx.revert();
         </div>
 
         <div className="workflow-grid">
-          {WORKFLOW.map((s, i) => {
-            const Icon = s.icon;
-            return (
-              <div
-                key={s.title}
-                className={`workflow-card ${
-                  i === activeStep ? 'workflow-card--active' : ''
-                }`}
-                onMouseEnter={() => setActiveStep(i)}
-              >
-                <div className="workflow-step-num">{s.step}</div>
-                <div className="workflow-icon">
-                  <Icon size={22} />
-                </div>
-                <h4>{s.title}</h4>
-                <p>{s.desc}</p>
-                {i < WORKFLOW.length - 1 && (
-                  <div className="workflow-connector" aria-hidden />
-                )}
-              </div>
-            );
-          })}
+          {WORKFLOW.map((s, i) => (
+            <WorkflowCard
+              key={s.title}
+              step={s.step}
+              title={s.title}
+              desc={s.desc}
+              icon={s.icon}
+              isActive={i === activeStep}
+              onMouseEnter={() => setActiveStep(i)}
+            />
+          ))}
         </div>
       </section>
 
