@@ -36,9 +36,9 @@ interface User {
 /* ---------------- DATA ---------------- */
 
 const HERO_STATS = [
-  { value: '10k+', label: 'Forms Generated' },
-  { value: '30s', label: 'Avg. Build Time' },
-  { value: '99%', label: 'Accuracy' },
+  { label: 'Google Forms' },
+  { label: 'Gemini' },
+  { label: 'Google OAuth' },
 ];
 
 const WORKFLOW = [
@@ -194,6 +194,43 @@ return () => ctx.revert();
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const getStatIcon = (label: string) => {
+    switch (label) {
+      case 'Google Forms':
+        return (
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="2" width="22" height="24" rx="3" fill="#4285F4"/>
+            <rect x="7" y="6" width="14" height="2" rx="1" fill="white"/>
+            <rect x="7" y="11" width="10" height="2" rx="1" fill="white" opacity="0.7"/>
+            <rect x="7" y="16" width="14" height="2" rx="1" fill="white" opacity="0.7"/>
+            <rect x="7" y="21" width="8" height="2" rx="1" fill="white" opacity="0.5"/>
+          </svg>
+        );
+      case 'Gemini':
+        return (
+          <img
+            src="https://static.vecteezy.com/system/resources/thumbnails/055/687/065/small_2x/gemini-google-icon-symbol-logo-free-png.png"
+            alt="Gemini"
+            width="28"
+            height="28"
+            style={{ borderRadius: '50%' }}
+          />
+        );
+      case 'Google OAuth':
+        return (
+          <img
+            src="https://icon2.cleanpng.com/lnd/20241121/sc/bd7ce03eb1225083f951fc01171835.webp"
+            alt="Google OAuth"
+            width="28"
+            height="28"
+            style={{ borderRadius: '50%' }}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="page-maritime">
       {/* ==================== 1. HERO ==================== */}
@@ -256,7 +293,7 @@ return () => ctx.revert();
       <div className="hero-stats">
         {HERO_STATS.map((s) => (
           <div className="hero-stat" key={s.label}>
-            <span className="hero-stat-value">{s.value}</span>
+            <span className="hero-stat-icon">{getStatIcon(s.label)}</span>
             <span className="hero-stat-label">{s.label}</span>
           </div>
         ))}
