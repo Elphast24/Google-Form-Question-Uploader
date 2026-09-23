@@ -1,35 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Container,
-  Box,
-  Typography,
-  Button,
-  TextField,
-  InputAdornment,
-  Card,
-  CardContent,
-  IconButton,
-  Chip,
-  Alert,
-} from '@mui/material';
-import {
-  Search as SearchIcon,
-  ContentCopy as CopyIcon,
-  OpenInNew as OpenIcon,
-  Description as FileIcon,
-  CalendarToday as CalendarIcon,
-  Add as AddIcon,
-} from '@mui/icons-material';
-import LoadingScreen from '../components/Loader';
-import { getUserForms } from '../services/api';
+import { Box, Container, Typography, Button, TextField, InputAdornment, Card, CardContent, IconButton, Chip, Alert } from '@mui/material';
+import { Search as SearchIcon, ContentCopy as CopyIcon, OpenInNew as OpenIcon, Description as FileIcon, CalendarToday as CalendarIcon, Add as AddIcon } from '@mui/icons-material';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import LoadingScreen from '@/components/Loader';
+import { getUserForms } from '@/services/api';
 import type { UserForm } from '@/types/api';
+import { useGSAPAnimation } from '@/hooks/useGSAPAnimation';
 import '../styles/global.css';
 
-interface DeleteDialogState {
-  open: boolean;
-  draftId: string | null;
-}
+gsap.registerPlugin(ScrollTrigger);
 
 const MyForms = () => {
   const navigate = useNavigate();
@@ -39,6 +20,9 @@ const MyForms = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const { reduceMotion } = useGSAPAnimation();
+
+  const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchForms();
@@ -62,12 +46,37 @@ const MyForms = () => {
       setForms(response.forms || []);
       setFilteredForms(response.forms || []);
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error');
-      setError(error.message || 'Failed to load forms');
+      setError(
+        err instanceof Error ? err.message : 'Failed to load forms'
+      );
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (reduceMotion) return;
+
+    const ctx = gsap.context(() => {
+      if (gridRef.current) {
+        const cards = gridRef.current.querySelectorAll('.folder-card');
+        gsap.from(cards, {
+          scrollTrigger: {
+            trigger: gridRef.current,
+            start: 'top 80%',
+            toggleActions: 'play none none reverse',
+          },
+          y: 40,
+          opacity: 0,
+          stagger: 0.1,
+          duration: 0.6,
+          ease: 'power2.out',
+        });
+      }
+    });
+
+    return () => ctx.revert();
+  }, [reduceMotion]);
 
   const copyToClipboard = async (text: string, id: string) => {
     try {
@@ -94,221 +103,195 @@ const MyForms = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 6 }}>
-      <Box
-        sx={{
-          mb: 4,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 2,
-        }}
-      >
-        <Box>
-          <Typography variant="h3" gutterBottom fontWeight={600}>
-            My Forms
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            View and manage all your generated Google Forms
-          </Typography>
+    <div className="page-maritime">
+      <Container maxWidth="lg" sx={{ py: 6, position: 'relative', zIndex: 2 }}>
+        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
+          <Box>
+            <Typography variant="h3" gutterBottom fontWeight={600}>
+              My Forms
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              View and manage all your generated Google Forms
+            </Typography>
+          </Box>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/')}>
+            Create New Form
+          </Button>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/')}
-        >
-          Create New Form
-        </Button>
-      </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
 
-      {/* Search Bar */}
-      {forms.length > 0 && (
-        <TextField
-          fullWidth
-          placeholder="Search forms by title..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          sx={{ mb: 4, maxWidth: 600 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
-      )}
+        {/* Search Bar with brass frame */}
+        {forms.length > 0 && (
+          <div className="brass-search">
+            <SearchIcon className="search-icon-brass" />
+            <TextField
+              fullWidth
+              placeholder="Search forms by title..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </div>
+        )}
 
-      {/* Forms Grid */}
-      {filteredForms.length > 0 ? (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-          {filteredForms.map((form) => (
-            <Box key={form.id} sx={{ flex: '1 1 calc(33.333% - 24px)', minWidth: '280px' }}>
-              <Card
-                elevation={1}
-                sx={{
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: 3,
-                  },
-                }}
+        {/* Filing Cabinet Grid */}
+        {filteredForms.length > 0 ? (
+          <div className="cabinet-grid" ref={gridRef}>
+            {filteredForms.map((form) => (
+              <Box
+                key={form.id}
+                sx={{ flex: '1 1 calc(33.333% - 24px)', minWidth: '280px' }}
               >
-                <CardContent sx={{ flex: 1, p: 3 }}>
-                  {/* Card Header */}
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      mb: 2,
-                    }}
+                <Card
+                  elevation={1}
+                  sx={{
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    bgcolor: 'transparent',
+                    boxShadow: 'none',
+                  }}
+                >
+                  <CardContent
+                    className="folder-card"
+                    sx={{ flex: 1, p: 3 }}
                   >
-                    <Box
-                      sx={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 1,
-                        bgcolor: 'primary.50',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <FileIcon sx={{ color: 'primary.main' }} />
-                    </Box>
-                    <Chip
-                      icon={<CalendarIcon sx={{ fontSize: 14 }} />}
-                      label={formatDate(form.createdAt)}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </Box>
-
-                  {/* Form Title */}
-                  <Typography
-                    variant="h6"
-                    gutterBottom
-                    fontWeight={600}
-                    sx={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                    }}
-                  >
-                    {form.title}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    ID: {form.formId}
-                  </Typography>
-
-                  {/* Links */}
-                  <Box sx={{ mt: 3, pt: 2, borderTop: 1, borderColor: 'divider' }}>
                     <Box
                       sx={{
                         display: 'flex',
                         justifyContent: 'space-between',
-                        alignItems: 'center',
-                        mb: 1,
+                        alignItems: 'flex-start',
+                        mb: 2,
                       }}
                     >
-                      <Typography variant="caption" color="text.secondary">
-                        View Link
-                      </Typography>
-                      <Box>
-                        <IconButton
-                          size="small"
-                          onClick={() =>
-                            copyToClipboard(form.viewUrl, `view-${form.id}`)
-                          }
-                        >
-                          {copiedId === `view-${form.id}` ? (
-                            <FileIcon color="success" fontSize="small" />
-                          ) : (
-                            <CopyIcon fontSize="small" />
-                          )}
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => window.open(form.viewUrl, '_blank')}
-                        >
-                          <OpenIcon fontSize="small" />
-                        </IconButton>
+                      <Box
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 1,
+                          bgcolor: 'primary.50',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <FileIcon sx={{ color: 'primary.main' }} />
                       </Box>
+                      <Chip
+                        icon={<CalendarIcon sx={{ fontSize: 14 }} />}
+                        label={formatDate(form.createdAt)}
+                        size="small"
+                        variant="outlined"
+                      />
                     </Box>
 
-                    <Box
+                    <Typography
+                      variant="h6"
+                      gutterBottom
+                      fontWeight={600}
                       sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
                       }}
                     >
-                      <Typography variant="caption" color="text.secondary">
-                        Edit Link
-                      </Typography>
-                      <Box>
-                        <IconButton
-                          size="small"
-                          onClick={() =>
-                            copyToClipboard(form.editUrl, `edit-${form.id}`)
-                          }
-                        >
-                          {copiedId === `edit-${form.id}` ? (
-                            <FileIcon color="success" fontSize="small" />
-                          ) : (
-                            <CopyIcon fontSize="small" />
-                          )}
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => window.open(form.editUrl, '_blank')}
-                        >
-                          <OpenIcon fontSize="small" />
-                        </IconButton>
+                      {form.title}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      ID: {form.formId}
+                    </Typography>
+
+                    <Box className="folder-links" sx={{ mt: 3, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+                      <Box className="folder-link-row" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="caption" color="text.secondary">
+                          View Link
+                        </Typography>
+                        <Box>
+                          <IconButton
+                            size="small"
+                            onClick={() => copyToClipboard(form.viewUrl, `view-${form.id}`)}
+                          >
+                            {copiedId === `view-${form.id}` ? (
+                              <FileIcon color="success" fontSize="small" />
+                            ) : (
+                              <CopyIcon fontSize="small" />
+                            )}
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={() => window.open(form.viewUrl, '_blank')}
+                          >
+                            <OpenIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      </Box>
+
+                      <Box className="folder-link-row" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="caption" color="text.secondary">
+                          Edit Link
+                        </Typography>
+                        <Box>
+                          <IconButton
+                            size="small"
+                            onClick={() => copyToClipboard(form.editUrl, `edit-${form.id}`)}
+                          >
+                            {copiedId === `edit-${form.id}` ? (
+                              <FileIcon color="success" fontSize="small" />
+                            ) : (
+                              <CopyIcon fontSize="small" />
+                            )}
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={() => window.open(form.editUrl, '_blank')}
+                          >
+                            <OpenIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
                       </Box>
                     </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Box>
-          ))}
-        </Box>
-      ) : (
-        <Box sx={{ textAlign: 'center', py: 10 }}>
-          <FileIcon sx={{ fontSize: 80, color: 'grey.300', mb: 2 }} />
-          <Typography variant="h5" gutterBottom fontWeight={600}>
-            {searchQuery ? 'No forms found' : 'No forms yet'}
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-            {searchQuery
-              ? 'Try adjusting your search query'
-              : 'Create your first Google Form by uploading a document'}
-          </Typography>
-          {!searchQuery && (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => navigate('/')}
-            >
-              Create Your First Form
-            </Button>
-          )}
-        </Box>
-      )}
-    </Container>
+                  </CardContent>
+                </Card>
+              </Box>
+            ))}
+          </div>
+        ) : (
+          <Box sx={{ textAlign: 'center', py: 10 }}>
+            <FileIcon sx={{ fontSize: 80, color: 'grey.300', mb: 2 }} />
+            <Typography variant="h5" gutterBottom fontWeight={600}>
+              {searchQuery ? 'No forms found' : 'No forms yet'}
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+              {searchQuery
+                ? 'Try adjusting your search query'
+                : 'Create your first Google Form by uploading a document'}
+            </Typography>
+            {!searchQuery && (
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => navigate('/')}
+              >
+                Create Your First Form
+              </Button>
+            )}
+          </Box>
+        )}
+      </Container>
+    </div>
   );
 };
 

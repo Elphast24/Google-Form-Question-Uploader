@@ -10,7 +10,9 @@ import '@/styles/global.css';
 const Generated = lazy(() => import('@/pages/Generated'));
 const Preview = lazy(() => import('@/pages/Preview'));
 const MyForms = lazy(() => import('@/pages/MyForms'));
+const Drafts = lazy(() => import('@/pages/Drafts'));
 const AuthCallback = lazy(() => import('@/pages/AuthCallback'));
+const OAuthSuccess = lazy(() => import('@/pages/OAuthSuccess'));
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -48,6 +50,8 @@ function App() {
             <Route path="/preview" element={<ProtectedRoute><Preview /></ProtectedRoute>} />
             <Route path="/generated" element={<ProtectedRoute><Generated /></ProtectedRoute>} />
             <Route path="/my-forms" element={<ProtectedRoute><MyForms /></ProtectedRoute>} />
+            <Route path="/drafts" element={<ProtectedRoute><Drafts /></ProtectedRoute>} />
+            <Route path="/oauth-success" element={<OAuthSuccess />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
