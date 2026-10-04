@@ -1,11 +1,13 @@
 import React, { useState, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { LogOut, User, Menu, X } from 'lucide-react';
-import '../styles/global.css';
-import { useGSAPAnimation } from '@/hooks/useGSAPAnimation';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
+import { useGSAPAnimation } from '@/hooks/useGSAPAnimation';
+import CloudArrowsSVG from '@/components/maritime/CloudArrowsSVG';
+import PillButton from '@/components/maritime/PillButton';
+import '../styles/global.css';
 
 interface User {
   uid: string;
@@ -14,7 +16,7 @@ interface User {
   picture: string | null;
 }
 
-interface AuthContext {
+interface AuthContextShape {
   user: User | null;
   loading: boolean;
   signIn: () => Promise<void>;
@@ -22,7 +24,7 @@ interface AuthContext {
 }
 
 const Navbar: React.FC = () => {
-  const { user, signIn, signOut } = useAuth() as AuthContext;
+  const { user, signIn, signOut } = useAuth() as AuthContextShape;
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { reduceMotion, effective } = useGSAPAnimation();
@@ -36,6 +38,14 @@ const Navbar: React.FC = () => {
       opacity: 0,
       duration: effective(0.5),
       ease: 'power2.out',
+    });
+
+    gsap.from('.logo-medallion', {
+      scale: 0.8,
+      opacity: 0,
+      duration: effective(0.6),
+      ease: 'back.out(1.4)',
+      delay: 0.2,
     });
   }, [reduceMotion, effective]);
 
@@ -56,43 +66,56 @@ const Navbar: React.FC = () => {
     }
   };
 
+  const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `navbar-link${isActive ? ' active' : ''}`;
+
   return (
-    <nav className="navbar" ref={navRef}>
-      <div className="navbar-container">
-        <Link to="/" className="navbar-logo">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-            <rect x="3" y="3" width="18" height="18" rx="2" stroke="#4285F4" strokeWidth="2" />
-            <path d="M3 9h18M9 3v18" stroke="#4285F4" strokeWidth="2" />
-          </svg>
-          <span>AI Form Generator</span>
-        </Link>
+    <nav className="navbar-maritime" ref={navRef}>
+      <div className="navbar-shell">
+        <NavLink to="/" className="navbar-logo-pod" end>
+          <div className="logo-medallion">
+            <CloudArrowsSVG size={32} animate={false} />
+          </div>
+          <span className="logo-wordmark">
+            AI<span className="logo-accent">Forms</span>
+          </span>
+        </NavLink>
 
-        {/* Desktop Menu */}
-        <div className="navbar-menu">
-          {user && (
-            <Link to="/my-forms" className="navbar-link">
-              My Forms
-            </Link>
-          )}
+        <ul className="navbar-menu">
+          <li><NavLink to="/" end className={getNavLinkClass}>Home</NavLink></li>
+          <li><NavLink to="/preview" className={getNavLinkClass}>Preview</NavLink></li>
+          <li><NavLink to="/my-forms" className={getNavLinkClass}>My Forms</NavLink></li>
+          <li><NavLink to="/drafts" className={getNavLinkClass}>Drafts</NavLink></li>
+        </ul>
 
+        <div className="navbar-user">
           {user ? (
-            <div className="navbar-user">
-              <img src={user.picture || ''} alt={user.name || ''} className="navbar-user-avatar" />
+            <>
+              <img
+                src={user.picture || ''}
+                alt={user.name || 'User'}
+                className="navbar-user-avatar"
+              />
               <span className="navbar-user-name">{user.name}</span>
-              <button onClick={handleSignOut} className="navbar-button-secondary">
+              <button
+                onClick={handleSignOut}
+                className="navbar-button-secondary"
+              >
                 <LogOut size={18} />
                 Sign Out
               </button>
-            </div>
+            </>
           ) : (
-            <button onClick={handleSignIn} className="navbar-button-primary">
+            <button
+              onClick={handleSignIn}
+              className="navbar-button-primary"
+            >
               <User size={18} />
-              Sign in with Google
+              Sign in
             </button>
           )}
         </div>
 
-        {/* Mobile Menu Button */}
         <button
           className="navbar-mobile-toggle"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -101,40 +124,29 @@ const Navbar: React.FC = () => {
         </button>
       </div>
 
-      {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="navbar-mobile-menu">
-          {user && (
-            <Link
-              to="/my-forms"
-              className="navbar-mobile-link"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              My Forms
-            </Link>
-          )}
-
+          <NavLink to="/" end className="navbar-mobile-link" onClick={() => setMobileMenuOpen(false)}>
+            Home
+          </NavLink>
+          <NavLink to="/preview" className="navbar-mobile-link" onClick={() => setMobileMenuOpen(false)}>
+            Preview
+          </NavLink>
+          <NavLink to="/my-forms" className="navbar-mobile-link" onClick={() => setMobileMenuOpen(false)}>
+            My Forms
+          </NavLink>
+          <NavLink to="/drafts" className="navbar-mobile-link" onClick={() => setMobileMenuOpen(false)}>
+            Drafts
+          </NavLink>
           {user ? (
-            <>
-              <div className="navbar-mobile-user">
-                <img src={user.picture || ''} alt={user.name || ''} />
-                <span>{user.name}</span>
-              </div>
-              <button
-                onClick={() => {
-                  handleSignOut();
-                  setMobileMenuOpen(false);
-                }}
-                className="navbar-button-secondary"
-              >
-                <LogOut size={18} />
-                Sign Out
-              </button>
-            </>
+            <button onClick={handleSignOut} className="navbar-button-secondary">
+              <LogOut size={18} />
+              Sign Out
+            </button>
           ) : (
             <button onClick={handleSignIn} className="navbar-button-primary">
               <User size={18} />
-              Sign in with Google
+              Sign in
             </button>
           )}
         </div>
@@ -142,5 +154,7 @@ const Navbar: React.FC = () => {
     </nav>
   );
 };
+
+Navbar.displayName = 'Navbar';
 
 export default Navbar;

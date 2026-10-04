@@ -1,25 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import {
-  Container,
-  Box,
-  Typography,
-  Button,
-  TextField,
-  Stack,
-  Alert,
-  Snackbar,
-} from '@mui/material';
-import {
-  Add as AddIcon,
-  Save as SaveIcon,
-  CloudDone as CloudDoneIcon,
-} from '@mui/icons-material';
-import QuestionItem, { QuestionLike } from '../components/QuestionItem';
-import LoadingScreen from '../components/Loader';
-import { generateForm, saveDraft } from '../services/api';
+import { Cloud, Save, Plus } from 'lucide-react';
+import gsap from 'gsap';
+import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
+import { useGSAPAnimation } from '@/hooks/useGSAPAnimation';
+import QuestionItem from '@/components/QuestionItem';
+import LoadingScreen from '@/components/Loader';
+import { generateForm, saveDraft } from '@/services/api';
 import type { ParsedQuestion } from '@/types/api';
 import '../styles/global.css';
+
+gsap.registerPlugin(MorphSVGPlugin);
 
 interface LocationState {
   questions: ParsedQuestion[];
@@ -35,17 +26,55 @@ const Preview = () => {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [_saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [autoSaveEnabled] = useState(true);
+  const { reduceMotion } = useGSAPAnimation();
+  const clipboardRef = useRef<HTMLDivElement>(null);
 
-  const handleQuestionUpdate = (index: number, updatedQuestion: QuestionLike) => {
+  useEffect(() => {
+    if (!reduceMotion && clipboardRef.current) {
+      gsap.from(clipboardRef.current, {
+        y: -100,
+        rotateZ: -3,
+        opacity: 0,
+        duration: 1,
+        ease: 'power3.out',
+      });
+      gsap.from('.clip-metal', {
+        scale: 0,
+        rotateZ: 180,
+        duration: 0.6,
+        ease: 'back.out(2)',
+        delay: 0.5,
+      });
+    }
+  }, [reduceMotion]);
+
+  const handleQuestionUpdate = (index: number, updatedQuestion: ParsedQuestion) => {
     const newQuestions = [...questions];
     newQuestions[index] = updatedQuestion;
     setQuestions(newQuestions);
   };
 
   const handleQuestionDelete = (index: number) => {
+    if (!reduceMotion) {
+      const card = document.querySelector(`[data-q="${index}"]`);
+      if (card) {
+        gsap.to(card, {
+          scale: 0.3,
+          rotateZ: 15,
+          x: 200,
+          opacity: 0,
+          duration: 0.5,
+          ease: 'power2.in',
+          onComplete: () => {
+            setQuestions(questions.filter((_, i) => i !== index));
+          },
+        });
+        return;
+      }
+    }
     setQuestions(questions.filter((_, i) => i !== index));
   };
 
@@ -77,7 +106,7 @@ const Preview = () => {
       const response = await saveDraft({
         title: title.trim(),
         questions: questions,
-        draftId: draftId
+        draftId: draftId,
       });
 
       if (!draftId) {
@@ -88,13 +117,9 @@ const Preview = () => {
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
       }
-      
-      console.log('✅ Draft saved successfully');
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error');
-      console.error('Failed to save draft:', err);
       if (!silent) {
-        setError(error.message || 'Failed to save draft');
+        setError(err instanceof Error ? err.message : 'Failed to save draft');
       }
     } finally {
       setSaving(false);
@@ -112,13 +137,12 @@ const Preview = () => {
     }
   }, [location, navigate]);
 
-  // Auto-save draft every 30 seconds
   useEffect(() => {
     if (!autoSaveEnabled || !title || questions.length === 0) return;
 
     const autoSaveTimer = setInterval(() => {
-      handleSaveDraft(true); // silent save
-    }, 30000); // 30 seconds
+      handleSaveDraft(true);
+    }, 30000);
 
     return () => clearInterval(autoSaveTimer);
   }, [title, questions, autoSaveEnabled, handleSaveDraft]);
@@ -135,7 +159,7 @@ const Preview = () => {
     }
 
     for (let i = 0; i < questions.length; i++) {
-      if (!questions[i]?.question_text || !questions[i].question_text.trim()) {
+      if (!questions[i]?.question_text || !questions[i]?.question_text.trim()) {
         setError(`Question ${i + 1} is empty`);
         return;
       }
@@ -148,7 +172,7 @@ const Preview = () => {
       const response = await generateForm({
         title: title,
         questions: questions,
-        draftId: draftId
+        draftId: draftId,
       });
 
       navigate('/generated', {
@@ -158,8 +182,9 @@ const Preview = () => {
         },
       });
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error');
-      setError(error.message || 'Failed to create form. Please try again.');
+      setError(
+        err instanceof Error ? err.message : 'Failed to create form. Please try again.'
+      );
     } finally {
       setGenerating(false);
     }
@@ -170,107 +195,78 @@ const Preview = () => {
   }
 
   return (
-    <Box sx={{ bgcolor: 'background.default', minHeight: 'calc(100vh - 200px)' }}>
-      <Container maxWidth="md" sx={{ py: 6 }}>
-        {/* Header */}
-        <Box sx={{ mb: 6, textAlign: 'center' }}>
-          <Typography variant="h3" gutterBottom fontWeight={600}>
-            Preview & Edit Questions
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Review and customize your questions before creating the Google Form
-          </Typography>
-        </Box>
+    <div className="page-maritime">
+      <div className="preview-page">
+        <div className="preview-rail" />
+        <main className="home-page">
+          <div className="clipboard" ref={clipboardRef}>
+            <div className="clip-metal" />
 
-        {/* Form Title */}
-        <Box sx={{ mb: 4 }}>
-            <TextField
-            fullWidth
-            label="Form Title"
-            value={title || ''}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Enter form title"
-            required
-          />
-        </Box>
+            <div className="action-header">
+              <h2 className="action-title">Preview & Edit Questions</h2>
+              <p className="action-subtitle">Review and customize your questions before creating the Google Form</p>
+            </div>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
+            <div className="form-title-row">
+              <input
+                type="text"
+                value={title || ''}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter form title"
+                required
+                className="form-input form-title-input"
+              />
+            </div>
 
-        {/* Questions List */}
-        <Stack spacing={3} sx={{ mb: 3 }}>
-          {questions.map((question, index) => (
-             <QuestionItem
-              key={index}
-              question={question}
-              index={index}
-              onUpdate={handleQuestionUpdate}
-              onDelete={handleQuestionDelete}
-            />
-          ))}
-        </Stack>
+            {error && (
+              <div className="error-message">
+                {error}
+              </div>
+            )}
 
-        {/* Add Question Button */}
-        <Button
-          variant="outlined"
-          fullWidth
-          startIcon={<AddIcon />}
-          onClick={handleAddQuestion}
-          sx={{ mb: 4 }}
-        >
-          Add Question
-        </Button>
+            <div className="question-form-grid">
+              {questions.map((question, index) => (
+                <QuestionItem
+                  key={index}
+                  question={question}
+                  index={index}
+                  onUpdate={handleQuestionUpdate}
+                  onDelete={handleQuestionDelete}
+                />
+              ))}
+            </div>
 
-        {/* Action Buttons */}
-        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-          {/* Save Draft Button */}
-          <Button
-            variant="outlined"
-            size="large"
-            startIcon={saving ? <CloudDoneIcon /> : <SaveIcon />}
-            onClick={() => handleSaveDraft(false)}
-            disabled={saving || generating}
-            sx={{ minWidth: 200 }}
-          >
-            {saving ? 'Saving...' : draftId ? 'Update Draft' : 'Save Draft'}
-          </Button>
+            <div className="action-buttons-ct">
+              <button
+                className="btn-pill btn-pill-white"
+                onClick={handleAddQuestion}
+                disabled={generating || saveSuccess}
+              >
+                Add Question
+              </button>
 
-          {/* Create Form Button */}
-          <Button
-            variant="contained"
-            size="large"
-            startIcon={generating ? null : <SaveIcon />}
-            onClick={handleCreateForm}
-            disabled={generating || saving}
-            sx={{ minWidth: 200 }}
-          >
-            {generating ? <LoadingScreen text="" /> : 'Create Google Form'}
-          </Button>
-        </Box>
+              <button
+                className="btn-pill btn-pill-coral"
+                onClick={() => handleSaveDraft(false)}
+                disabled={saveSuccess}
+              >
+                {saveSuccess ? 'Saved' : 'Save Draft'}
+              </button>
 
-        {/* Auto-save indicator */}
-        {draftId && (
-          <Typography 
-            variant="caption" 
-            color="text.secondary" 
-            sx={{ display: 'block', textAlign: 'center', mt: 2 }}
-          >
-            {autoSaveEnabled ? '✓ Auto-saving enabled' : 'Auto-save disabled'}
-          </Typography>
-        )}
-      </Container>
+              <button
+                className="btn-pill btn-pill-outline"
+                onClick={handleCreateForm}
+                disabled={generating || saveSuccess}
+              >
+                {generating ? 'PROCESSING...' : 'Create Google Form'}
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
 
-      {/* Success Snackbar */}
-      <Snackbar
-        open={saveSuccess}
-        autoHideDuration={3000}
-        onClose={() => setSaveSuccess(false)}
-        message="Draft saved successfully"
-      />
-    </Box>
+      <div className="snackbar-banner" />
+    </div>
   );
 };
 

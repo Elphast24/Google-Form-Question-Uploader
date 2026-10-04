@@ -5,9 +5,10 @@ import '../styles/global.css';
 interface UploadBoxProps {
   onFileSelect: (file: File | null) => void;
   disabled?: boolean;
+  variant?: 'default' | 'compact-dark';
 }
 
-const UploadBox = ({ onFileSelect, disabled = false }: UploadBoxProps) => {
+const UploadBox = ({ onFileSelect, disabled = false, variant = 'default' }: UploadBoxProps) => {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -73,6 +74,57 @@ const UploadBox = ({ onFileSelect, disabled = false }: UploadBoxProps) => {
     }
   };
 
+  if (variant === 'compact-dark') {
+    return (
+      <div className="upload-box-container">
+        <div
+          className={`upload-box-compact ${dragActive ? 'drag-active' : ''} ${disabled ? 'disabled' : ''}`}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+          onClick={handleClick}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".docx,.txt"
+            onChange={handleChange}
+            style={{ display: 'none' }}
+            disabled={disabled}
+          />
+
+          {!selectedFile ? (
+            <>
+              <Upload size={24} className="upload-icon" />
+              <span className="upload-title">Drop your file or click to browse</span>
+            </>
+          ) : (
+            <div className="upload-file-info">
+              <File size={24} className="file-icon" />
+              <div className="file-details">
+                <span className="file-name">{selectedFile.name}</span>
+                <span className="file-size">
+                  {(selectedFile.size / 1024).toFixed(2)} KB
+                </span>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemoveFile();
+                }}
+                className="file-remove-button"
+                disabled={disabled}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="upload-box-container">
       <div
@@ -126,5 +178,7 @@ const UploadBox = ({ onFileSelect, disabled = false }: UploadBoxProps) => {
     </div>
   );
 };
+
+UploadBox.displayName = 'UploadBox';
 
 export default UploadBox;

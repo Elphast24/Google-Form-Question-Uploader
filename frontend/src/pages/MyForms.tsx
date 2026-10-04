@@ -1,314 +1,133 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Container,
-  Box,
-  Typography,
-  Button,
-  TextField,
-  InputAdornment,
-  Card,
-  CardContent,
-  IconButton,
-  Chip,
-  Alert,
-} from '@mui/material';
-import {
-  Search as SearchIcon,
-  ContentCopy as CopyIcon,
-  OpenInNew as OpenIcon,
-  Description as FileIcon,
-  CalendarToday as CalendarIcon,
-  Add as AddIcon,
-} from '@mui/icons-material';
-import LoadingScreen from '../components/Loader';
-import { getUserForms } from '../services/api';
+import { ArrowUpRight, CalendarDays, Check, Copy, FileText, Plus, Search } from 'lucide-react';
+import { useGSAPAnimation } from '@/hooks/useGSAPAnimation';
+import FormSkeleton from '@/components/shared/FormSkeleton';
+import { Button } from '@/components/shared/Button';
+import { getUserForms } from '@/services/api';
 import type { UserForm } from '@/types/api';
 import '../styles/global.css';
-
-interface DeleteDialogState {
-  open: boolean;
-  draftId: string | null;
-}
 
 const MyForms = () => {
   const navigate = useNavigate();
   const [forms, setForms] = useState<UserForm[]>([]);
-  const [filteredForms, setFilteredForms] = useState<UserForm[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [query, setQuery] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const { reduceMotion } = useGSAPAnimation();
 
   useEffect(() => {
-    fetchForms();
+    let active = true;
+    getUserForms()
+      .then((response) => { if (active) setForms(response.forms || []); })
+      .catch((err: unknown) => { if (active) setError(err instanceof Error ? err.message : 'Could not load your forms.'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, []);
 
-  useEffect(() => {
-    if (searchQuery.trim()) {
-      const filtered = forms.filter((form) =>
-        form.title.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setFilteredForms(filtered);
-    } else {
-      setFilteredForms(forms);
-    }
-  }, [searchQuery, forms]);
+  const filtered = useMemo(() => {
+    const value = query.trim().toLowerCase();
+    return value ? forms.filter((form) => form.title.toLowerCase().includes(value)) : forms;
+  }, [forms, query]);
 
-  const fetchForms = async () => {
+  const copyLink = async (url: string, id: string) => {
     try {
-      setLoading(true);
-      const response = await getUserForms();
-      setForms(response.forms || []);
-      setFilteredForms(response.forms || []);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error');
-      setError(error.message || 'Failed to load forms');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const copyToClipboard = async (text: string, id: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(url);
       setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 2000);
+      window.setTimeout(() => setCopiedId(null), 1800);
     } catch {
-      alert('Failed to copy link');
+      setError('Could not copy the link. Check your browser clipboard permissions and try again.');
     }
   };
 
-  const formatDate = (date: string) => {
-    if (!date) return 'N/A';
-    const d = new Date(date);
-    return d.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+  const dateLabel = (date: string) => {
+    const parsed = new Date(date);
+    return date && !Number.isNaN(parsed.getTime())
+      ? parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+      : 'Date unavailable';
   };
 
-  if (loading) {
-    return <LoadingScreen text="Loading your forms..." />;
-  }
+  if (loading) return <FormSkeleton />;
 
   return (
-    <Container maxWidth="lg" sx={{ py: 6 }}>
-      <Box
-        sx={{
-          mb: 4,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 2,
-        }}
-      >
-        <Box>
-          <Typography variant="h3" gutterBottom fontWeight={600}>
-            My Forms
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            View and manage all your generated Google Forms
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/')}
-        >
-          Create New Form
-        </Button>
-      </Box>
+    <main className="page-maritime library-page">
+      <div className="library-shell">
+        <section className="library-hero">
+          <div className="library-hero-copy">
+            <div className="library-breadcrumb"><span>Workspace</span><i />My Forms</div>
+            <h1>Your forms,<br /><em>all in one place.</em></h1>
+            <p>Open a form to make changes, or copy a link to share it with your audience.</p>
+          </div>
+          <div className="library-hero-aside" aria-label="Forms created">
+            <div className="library-count">{forms.length.toString().padStart(2, '0')}</div>
+            <div className="library-count-label">FORM{forms.length === 1 ? '' : 'S'}<br />CREATED</div>
+            <div className="library-aside-rule" />
+            <Button onClick={() => navigate('/')} leftIcon={<Plus size={17} />}>New form</Button>
+          </div>
+          <div className="library-hero-mark" aria-hidden="true"><FileText size={96} strokeWidth={0.8} /></div>
+        </section>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
+        {error && <div className="library-error" role="alert">
+          <span>{error}</span><button type="button" onClick={() => setError(null)}>Dismiss</button>
+        </div>}
 
-      {/* Search Bar */}
-      {forms.length > 0 && (
-        <TextField
-          fullWidth
-          placeholder="Search forms by title..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          sx={{ mb: 4, maxWidth: 600 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
-      )}
+        <section className="library-listing">
+          <div className="library-listing-head">
+            <div>
+              <span className="library-section-label">FORM LIBRARY</span>
+              <h2>{query ? 'Search results' : 'Recently created'}</h2>
+            </div>
+            {forms.length > 0 && <div className="library-search">
+              <Search size={18} aria-hidden="true" />
+              <input type="search" value={query} onChange={(event) => setQuery(event.target.value)}
+                placeholder="Find a form" aria-label="Search forms by title" />
+              {query && <button type="button" onClick={() => setQuery('')} aria-label="Clear search">x</button>}
+            </div>}
+          </div>
 
-      {/* Forms Grid */}
-      {filteredForms.length > 0 ? (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-          {filteredForms.map((form) => (
-            <Box key={form.id} sx={{ flex: '1 1 calc(33.333% - 24px)', minWidth: '280px' }}>
-              <Card
-                elevation={1}
-                sx={{
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: 3,
-                  },
-                }}
-              >
-                <CardContent sx={{ flex: 1, p: 3 }}>
-                  {/* Card Header */}
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      mb: 2,
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 1,
-                        bgcolor: 'primary.50',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <FileIcon sx={{ color: 'primary.main' }} />
-                    </Box>
-                    <Chip
-                      icon={<CalendarIcon sx={{ fontSize: 14 }} />}
-                      label={formatDate(form.createdAt)}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </Box>
-
-                  {/* Form Title */}
-                  <Typography
-                    variant="h6"
-                    gutterBottom
-                    fontWeight={600}
-                    sx={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                    }}
-                  >
-                    {form.title}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    ID: {form.formId}
-                  </Typography>
-
-                  {/* Links */}
-                  <Box sx={{ mt: 3, pt: 2, borderTop: 1, borderColor: 'divider' }}>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        mb: 1,
-                      }}
-                    >
-                      <Typography variant="caption" color="text.secondary">
-                        View Link
-                      </Typography>
-                      <Box>
-                        <IconButton
-                          size="small"
-                          onClick={() =>
-                            copyToClipboard(form.viewUrl, `view-${form.id}`)
-                          }
-                        >
-                          {copiedId === `view-${form.id}` ? (
-                            <FileIcon color="success" fontSize="small" />
-                          ) : (
-                            <CopyIcon fontSize="small" />
-                          )}
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => window.open(form.viewUrl, '_blank')}
-                        >
-                          <OpenIcon fontSize="small" />
-                        </IconButton>
-                      </Box>
-                    </Box>
-
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <Typography variant="caption" color="text.secondary">
-                        Edit Link
-                      </Typography>
-                      <Box>
-                        <IconButton
-                          size="small"
-                          onClick={() =>
-                            copyToClipboard(form.editUrl, `edit-${form.id}`)
-                          }
-                        >
-                          {copiedId === `edit-${form.id}` ? (
-                            <FileIcon color="success" fontSize="small" />
-                          ) : (
-                            <CopyIcon fontSize="small" />
-                          )}
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => window.open(form.editUrl, '_blank')}
-                        >
-                          <OpenIcon fontSize="small" />
-                        </IconButton>
-                      </Box>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Box>
-          ))}
-        </Box>
-      ) : (
-        <Box sx={{ textAlign: 'center', py: 10 }}>
-          <FileIcon sx={{ fontSize: 80, color: 'grey.300', mb: 2 }} />
-          <Typography variant="h5" gutterBottom fontWeight={600}>
-            {searchQuery ? 'No forms found' : 'No forms yet'}
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-            {searchQuery
-              ? 'Try adjusting your search query'
-              : 'Create your first Google Form by uploading a document'}
-          </Typography>
-          {!searchQuery && (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => navigate('/')}
-            >
-              Create Your First Form
-            </Button>
+          {filtered.length > 0 ? (
+            <div className="library-grid">
+              {filtered.map((form, index) => <article className="library-card" key={form.id}
+                style={{ animationDelay: reduceMotion ? '0ms' : `${Math.min(index, 8) * 45}ms` }}>
+                <div className="library-card-top">
+                  <span className="library-card-icon"><FileText size={20} /></span>
+                  <span className="library-date"><CalendarDays size={14} />{dateLabel(form.createdAt)}</span>
+                </div>
+                <div className="library-card-copy">
+                  <span className="library-card-overline">GOOGLE FORM</span>
+                  <h3 title={form.title}>{form.title}</h3>
+                  <div className="library-id">ID <span>{form.formId}</span></div>
+                </div>
+                <div className="library-card-actions">
+                  {([
+                    { label: 'Share', url: form.viewUrl, id: `view-${form.id}`, note: 'Collect responses' },
+                    { label: 'Edit', url: form.editUrl, id: `edit-${form.id}`, note: 'Update questions' },
+                  ]).map((item) => <div className="library-action-row" key={item.id}>
+                    <div className="library-action-copy"><strong>{item.label}</strong><span>{item.note}</span></div>
+                    <button type="button" className="library-icon-button" onClick={() => copyLink(item.url, item.id)}
+                      aria-label={copiedId === item.id ? `${item.label} link copied` : `Copy ${item.label.toLowerCase()} link`}>
+                      {copiedId === item.id ? <Check size={17} /> : <Copy size={17} />}
+                    </button>
+                    <a className="library-icon-button" href={item.url} target="_blank" rel="noreferrer"
+                      aria-label={`Open ${item.label.toLowerCase()} form`}><ArrowUpRight size={17} /></a>
+                  </div>)}
+                </div>
+              </article>)}
+            </div>
+          ) : (
+            <div className="library-empty">
+              <div className="library-empty-symbol"><FileText size={25} /></div>
+              <h3>{query ? 'No forms match that search' : 'A good form starts with a document'}</h3>
+              <p>{query ? 'Try a different title or clear your search.' : 'Create your first form and its share and edit links will be kept here.'}</p>
+              {query
+                ? <button className="library-clear" type="button" onClick={() => setQuery('')}>Clear search</button>
+                : <Button onClick={() => navigate('/')} leftIcon={<Plus size={17} />}>Create your first form</Button>}
+            </div>
           )}
-        </Box>
-      )}
-    </Container>
+        </section>
+      </div>
+    </main>
   );
 };
 

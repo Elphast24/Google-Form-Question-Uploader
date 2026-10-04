@@ -1,0 +1,51 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 240 140"
+  className="cloud-arrows-svg"
+>
+  <defs>
+    {/* Hidden morph targets — arrows morph into checkmark on success screens */}
+    <path id="checkmark-big" d="M30,70 L70,110 L160,50 L154,44 L70,98 Z" />
+    <path id="checkmark-small" d="M75,35 L98,58 L128,32 L123,27 Z" />
+
+    {/* Gradients for maritime palette */}
+    <linearGradient id="navy-gradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor="#0F3560" />
+      <stop offset="100%" stopColor="#0B2A4A" />
+    </linearGradient>
+    <linearGradient id="coral-gradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor="#F15A29" />
+      <stop offset="100%" stopColor="#D94A1E" />
+    </linearGradient>
+
+    {/* Wave pattern filter for hero background */}
+    <filter id="cloud-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" floodOpacity="0.18" />
+    </filter>
+  </defs>
+
+  {/* Cloud outline — navy stroke */}
+  <path
+    className="cloud-outline"
+    d="M45,70 C30,65 20,45 30,28 C42,10 68,3 88,25 C103,8 125,8 140,25 C160,8 185,10 198,30 C215,50 205,75 190,85 L55,85 C45,85 38,80 40,70 C42,70 45,70 45,70 Z"
+    fill="none"
+    stroke="url(#navy-gradient)"
+    strokeWidth="6"
+    strokeLinejoin="round"
+    filter="url(#cloud-shadow)"
+  />
+
+  {/* Up arrow — coral fill */}
+  <path
+    className="arrow-up"
+    d="M85,25 L68,58 L82,58 L82,100 L96,100 L96,58 L110,58 Z"
+    fill="url(#coral-gradient)"
+  />
+
+  {/* Down arrow — coral fill */}
+  <path
+    className="arrow-down"
+    d="M145,105 L128,72 L142,72 L142,30 L156,30 L156,72 L170,72 Z"
+    fill="url(#coral-gradient)"
+  />
+</svg>
