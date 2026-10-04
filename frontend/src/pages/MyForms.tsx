@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight, CalendarDays, Check, Copy, FileText, Plus, Search } from 'lucide-react';
 import { useGSAPAnimation } from '@/hooks/useGSAPAnimation';
-import LoadingScreen from '@/components/Loader';
+import FormSkeleton from '@/components/shared/FormSkeleton';
 import { Button } from '@/components/shared/Button';
 import { getUserForms } from '@/services/api';
 import type { UserForm } from '@/types/api';
@@ -48,7 +48,7 @@ const MyForms = () => {
       : 'Date unavailable';
   };
 
-  if (loading) return <LoadingScreen text="Loading your forms..." />;
+  if (loading) return <FormSkeleton />;
 
   return (
     <main className="page-maritime library-page">
